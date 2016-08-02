@@ -50,6 +50,7 @@ class TabularTransformer(base.Transformer):
         except Exception, e:
             # e.g. ValueError('Unrecognized MIME type: application/vnd.oasis.opendocument.spreadsheet')
             log.warn('Messytables parse error %s %s: %s', self.resource_identifier, self.url, e)
+            log.warn('Some data: ext: %s, mime: %s', self.type, self.mimetype)
             raise ResourceError("Resource loading error",
                                 "Unable to load the resource")
 
