@@ -94,12 +94,12 @@ def get_resource_length(url, resource, required=False, redirects=0):
         length = int(headers['content-length'])
         return length
 
-    if required:
-        log.info('No content-length returned for server: %s'
-                                % (url))
-        raise ResourceError("Unable to get content length",
-            'Unable to find the size of the remote resource: %s' % \
-                                identify_resource(resource))
+    #if required:
+    #    log.info('No content-length returned for server: %s'
+    #                            % (url))
+    #    raise ResourceError("Unable to get content length",
+    #        'Unable to find the size of the remote resource: %s' % \
+    #                            identify_resource(resource))
     return None
 
 
@@ -198,6 +198,7 @@ def proxy_query(resource, url, query):
             'If file has no type extension, specify file type in type= option')
 
     resource_type = re.sub(r'^\.', '', resource_type.lower())
+    resource_type = resource_type.replace('json-stat', 'json')
     try:
         trans = transformer(resource_type, resource, url, query)
         if not trans:
@@ -257,7 +258,6 @@ def proxy_query(resource, url, query):
         result["url"] = url
     else:
         result["url"] = resource.cache_url or resource.url
-
     result["length"] = length or 0
 
     if 'indent' in query:

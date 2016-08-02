@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import urllib
 import urllib2
 from pylons import config
 import ckan.model as model
@@ -93,7 +94,8 @@ class DataPreviewController(BaseController):
         url = None
         archived = False
         query['mimetype'] = None
-        archival = Archival.get_for_resource(resource.id)
+        #archival = Archival.get_for_resource(resource.id)
+        archival = False
 
         if archival:
             # Look for a local cache of the data file
@@ -159,6 +161,10 @@ class DataPreviewController(BaseController):
                 elif r.getcode() > 400:
                     return None
             except urllib2.HTTPError, err:
+                if err.code == 405 or err.code == 500: #CSO or HAI
+                    import requests
+                    query['length'] = len(requests.get(u).content)
+                    return u, False
                 if err.code < 400:
                     log.warn(u"Request {0} with url {1}, {2}".format(identify_resource(resource), u, err.code))
             except Exception, e:

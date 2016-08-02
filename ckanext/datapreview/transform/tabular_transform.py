@@ -40,9 +40,13 @@ class TabularTransformer(base.Transformer):
                                 "Unable to load the remote resource")
 
         try:
-            table_set = any_tableset(fileobj=handle,
-                                     extension=self.type,
-                                     mimetype=self.mimetype)
+            if self.is_csv():
+                table_set = any_tableset(fileobj=handle,
+                                         extension=self.type)
+            else:
+                table_set = any_tableset(fileobj=handle,
+                                         extension=self.type,
+                                         mimetype=self.mimetype)
         except Exception, e:
             # e.g. ValueError('Unrecognized MIME type: application/vnd.oasis.opendocument.spreadsheet')
             log.warn('Messytables parse error %s %s: %s', self.resource_identifier, self.url, e)
@@ -89,7 +93,7 @@ class TabularTransformer(base.Transformer):
             "data": data,
             "max_results": self.max_results,
             "extra_text": extra,
-            "archived": "This file is previewed from the data.gov.uk archive." if self.from_archive else ""
+            "archived": "This file is previewed from the archive." if self.from_archive else ""
         }
 
         self.close_stream(handle)

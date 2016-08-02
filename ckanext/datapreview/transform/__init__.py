@@ -2,6 +2,7 @@ import sys
 from ckanext.datapreview.transform.base import *
 from ckanext.datapreview.transform.tabular_transform import TabularTransformer
 from ckanext.datapreview.transform.plain_transform import PlainTransformer
+from ckanext.datapreview.transform.json_transform import JSONTransformer
 
 register_transformer({
         "name": "csv",
@@ -16,3 +17,11 @@ register_transformer({
         "extensions": ["txt", "plain"],
         "mime_types": ("text/plain",),
     })
+
+register_transformer({
+        "name": "json",
+        "class": JSONTransformer,
+        "extensions": ["json-stat", "json", "geojson"],
+        "mime_types": ("application/json",),
+    })
+

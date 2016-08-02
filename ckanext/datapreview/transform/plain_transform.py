@@ -2,7 +2,7 @@
 from ckanext.datapreview.transform.base import Transformer
 from ckanext.datapreview.lib.errors import ResourceError
 
-MAX_TEXT_SIZE = 8192
+MAX_TEXT_SIZE = 819200
 
 
 class PlainTransformer(Transformer):
