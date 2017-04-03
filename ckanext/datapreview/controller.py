@@ -161,7 +161,16 @@ class DataPreviewController(BaseController):
                 elif r.getcode() > 400:
                     return None
             except urllib2.HTTPError, err:
-                if err.code == 405 or err.code == 500: #CSO or HAI
+
+                # we really shouldn't be doing this this way
+                # we end up doing 2 get requests if we have to fallback to using gets
+                # really we should either:
+                # 1. always get
+                # 2. always head and just not support servers that don't allow heads
+                # 3. do a _very_ specific host whitelist where they _promise_ not to link
+                #      to 100MB resources
+
+                if err.code == 403 or err.code == 405 or err.code == 500: #CSO or HAI
                     import requests
                     query['length'] = len(requests.get(u).content)
                     return u, False
