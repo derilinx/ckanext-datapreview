@@ -312,6 +312,7 @@ def fix_url(url):
         # requests InvalidUrl exception
         raise InvalidURL("URL is not valid")
 
+
     colon2 = colon2.encode('utf8')
     port = port.encode('utf8')
     path = '/'.join(  # could be encoded slashes!
@@ -323,4 +324,5 @@ def fix_url(url):
 
     # put it back together
     netloc = ''.join((user,colon1,pass_,at,host,colon2,port))
+
     return urlparse.urlunsplit((scheme,netloc,path,query,fragment))

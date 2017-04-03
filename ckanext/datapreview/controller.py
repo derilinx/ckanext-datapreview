@@ -6,7 +6,7 @@ import urllib2
 from pylons import config
 import ckan.model as model
 from ckan.lib.base import (BaseController, c, request, response, abort)
-from ckanext.dgu.plugins_toolkit import NotAuthorized
+from ckanext.dgu.plugins_toolkit import (NotAuthorized, get_action)
 from ckan.logic import check_access
 from ckanext.archiver.model import Archival
 from ckanext.qa.model import QA
@@ -68,6 +68,19 @@ class DataPreviewController(BaseController):
         else:
             result = _error(title="Remote resource not downloadable",
                 message="Unable to find the remote resource for download")
+
+        # log.debug(resource)
+        # log.debug(result)
+
+        try:
+            resource_obj = get_action('resource_show')({}, {'id': resource.id})
+            resource_obj['field_info'] = json.loads(result).get('field_info', {})
+            # lol ok
+            get_action('resource_update')({}, resource_obj)
+        except Exception as e:
+            log.debug("something broke!")
+            log.debug(e)
+            pass
 
         format_ = request.params.get('callback')
         if format_:
@@ -149,16 +162,20 @@ class DataPreviewController(BaseController):
                 return None, False
 
             try:
+                log.error('hiiiiiiii')
                 req = urllib2.Request(u)
                 req.get_method = lambda: 'HEAD'
 
+                log.error('code next')
                 r = urllib2.urlopen(req)
+                log.error(r.getcode())
                 if r.getcode() == 200:
                     url = u
                     query['length'] = r.info().get("content-length", 0)
                     query['mimetype'] = r.info().get('content-type', None)
                     log.debug('Previewing direct from URL: %s', url)
                 elif r.getcode() > 400:
+                    log.error("Got a weird error code %s for url %s" % (r.getcode(), u))
                     return None
             except urllib2.HTTPError, err:
 

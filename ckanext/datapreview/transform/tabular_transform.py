@@ -1,7 +1,9 @@
 """Data Proxy - Messytables transformation adapter"""
 import base
 from ckanext.datapreview.lib.errors import ResourceError
-from messytables import any_tableset, headers_guess
+from messytables import any_tableset, headers_guess, type_guess
+from collections import defaultdict
+import re
 
 log = __import__('logging').getLogger(__name__)
 
@@ -12,8 +14,7 @@ HTML_ESCAPE_TABLE = {
     "'": "&apos;",
     ">": "&gt;",
     "<": "&lt;",
-    }
-
+}
 
 class TabularTransformer(base.Transformer):
 
@@ -66,9 +67,26 @@ class TabularTransformer(base.Transformer):
 
         def prepare_cell(cell):
             v = unicode(cell)
-            return "".join(HTML_ESCAPE_TABLE.get(c,c) for c in v)
 
-        # Use the built-in header guessing in messtables to find the fields
+            escaped_value = "".join(HTML_ESCAPE_TABLE.get(c,c) for c in v)
+
+            #XXX ok, this is pretty Not A Good Idea
+            # we're going to see if the cell has only numbers and , and .
+            # and we'll just get rid of the commas in that case
+            # seriously this is not really a great idea
+            # what about numbers that use , as the decimal separator
+            # or numbers that use , but don't have anything after the decimal place
+            # etc etc etc
+            remove_comma_separator_from_numbers(escaped_value)
+
+            return escaped_value
+
+        def remove_comma_separator_from_numbers(s):
+            if re.match('^[ 0-9\.,]*$', s):
+                s = s.replace(',', '')
+            return s
+
+        # Use the built-in header guessing in messytables to find the fields
         offset, headers = headers_guess(rows)
         fields = [prepare_cell(c) for c in headers] if headers else []
 
@@ -77,7 +95,59 @@ class TabularTransformer(base.Transformer):
         data = []
         for i, r in enumerate(rows[:self.max_results]):
             if i != offset:
-                data.append([prepare_cell(c.value) for c in r])
+                data.append([prepare_cell(c.value.strip()) for c in r])
+
+        # we're going to guess the field types here
+        # looks like:
+        # { field_name: {"position": 0, "dimensionality": "scalar", "datatype": "int"}... }
+
+        field_types = {}
+
+        # XXX same as above, this is terrible and I should be fired
+        rows_for_type_guess = rows
+        for row in rows_for_type_guess:
+            for c in row:
+                c.value = remove_comma_separator_from_numbers(c.value)
+        guessed_types = type_guess(rows_for_type_guess)
+
+        for i, f in enumerate(fields):
+            field_types[f] = {
+                "position": i,
+                "datatype": str(guessed_types[i]),
+            }
+
+            # datatype one of
+            #String, Decimal, Integer, Date, Bool, Time, Currency, Percentage
+
+            #XXX this whole thing is super inefficient. don't ship any of it.
+
+            # get all the cells of this field
+
+            if (field_types[f]['datatype'] == 'String'):
+                data_dict = []
+                #get the data dict for this field
+                #XXX super inefficient
+                # btw for future, to check whether a column only has unique fields,
+                for row in data:
+                    for j, c in enumerate(row):
+                        if i == j and c != '':
+                            data_dict.append(c)
+                data_dict_set = set(data_dict)
+                field_types[f]['data_dict'] = list(data_dict_set)
+                # if not len(data_dict) == len(data_dict_set) and len(data_dict) > 1:
+                #     field_types[f]['data_dict'] = list(data_dict_set)
+                # else:
+                #     field_types[f]['identifier'] = True
+            # elif field_types[f]['datatype'] in ['Integer', 'Float', 'Decimal']:
+            #     total = 0
+
+            #     for row in data:
+            #         for j, c in enumerate(row):
+            #             if i == j:
+            #                 total += float(c if c else 0)
+
+            #     field_types[f]['total'] = total
+            #     field_types[f]['average'] = total/len(data)
 
         extra = ""
 
@@ -89,8 +159,11 @@ class TabularTransformer(base.Transformer):
             if more_results:
                 extra = "This preview shows only the first {0} rows - download it for the full file".format(self.max_results)
 
+        data_dictionary = {}
+
         result = {
             "fields": fields,
+            "field_info": field_types,
             "data": data,
             "max_results": self.max_results,
             "extra_text": extra,
@@ -118,7 +191,7 @@ class TabularTransformer(base.Transformer):
             return True
 
         if self.mimetype and self.mimetype.lower() in \
-                ['text/csv', 'text/comma-separated-values', 'application/csv']:
+           ['text/csv', 'text/comma-separated-values', 'application/csv']:
             return True
 
         return False
