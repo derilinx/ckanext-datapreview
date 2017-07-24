@@ -160,8 +160,8 @@ def proxy_query(resource, url, query):
     Or an error message:
         {
             "error": {
-                "message": "Requested resource is 21.3MB. Size limit is  19MB. Resource: /dataset/your-freedom-data/resource/ea11ed1e-d793-4fc6-b150-fb362a7ccac9",
-                "title": "The requested file is too large to preview"
+                "message": "The requested file is too large to preview. Please download file to access complete dataset.",
+                "title": "Requested resource is 8.9MB. Size limit is 2MB."
             }
         }
 
@@ -228,12 +228,11 @@ def proxy_query(resource, url, query):
         #  - remote files may take too long to download
         #  - some file formats need loading fully into memory and take too much
         if length and int(length) > max_length:
-            raise ResourceError('The requested file is too large to preview',
+            raise ResourceError('The requested file is too large to preview - please download file to access complete dataset',
                                 'Requested resource is %s. '
-                                'Size limit is %s. Resource: %s'
+                                'Size limit is %s.'
                                 % (sizeof_fmt(length),
-                                   sizeof_fmt(max_length, decimal_places=0),
-                                   identify_resource(resource)))
+                                   sizeof_fmt(max_length, decimal_places=0)))
 
     try:
         result = trans.transform()
